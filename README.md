@@ -1,6 +1,6 @@
-## better-world-books-database-system-
-  # A command-line bookstore management and analytics application built with Python, MySQL, and advanced SQL queries.
-  # This project was developed as part of a Database Systems course and demonstrates relational database design, CRUD operations, stored        procedures, advanced SQL reporting, OLAP operations, error handling, and transaction-oriented data analysis.
+# better-world-books-database-system-
+  ## A command-line bookstore management and analytics application built with Python, MySQL, and advanced SQL queries.
+  ## This project was developed as part of a Database Systems course and demonstrates relational database design, CRUD operations, stored        procedures, advanced SQL reporting, OLAP operations, error handling, and transaction-oriented data analysis.
 
 ## OVERVIEW
 The application demonstrates:
@@ -27,18 +27,18 @@ The application demonstrates:
 - OLAP (ROLLUP)
 - Error Handling
 
-## Features
+# Features
 
-# Customer Management
+## Customer Management
 - View customers
 - Add customers
 - Update customer information
 - Delete customers
 
-# Book Management
+## Book Management
 - Manage inventory and pricing
 
-# Reports
+## Reports
 - Top Selling Books
 - Customer Spending Summary
 - Customers With No Orders
