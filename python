@@ -1,0 +1,814 @@
+import mysql.connector
+
+# Database connection details
+host = "localhost"
+user = "sqluser"
+password = "password"
+database = "betterworldbooksdb"
+
+connection = None
+cursor = None
+
+try:
+    # Connect to the MySQL server
+    connection = mysql.connector.connect(
+        host=host,
+        user=user,
+        password=password,
+        database=database
+    )
+
+    if connection.is_connected():
+        print("Connected to the MySQL database successfully")
+
+    # Create a cursor object to interact with the database
+    cursor = connection.cursor()
+
+    # Error Handling Code Block
+    def get_int_input(prompt):
+        while True:
+            value = input(prompt)
+            if value.isdigit():
+                return int(value)
+            print("Invalid input. Please enter a valid number.")
+
+
+    def get_float_input(prompt):
+        while True:
+            value = input(prompt)
+            try:
+                return float(value)
+            except ValueError:
+                print("Invalid input. Please enter a valid decimal number.")
+
+
+    def safe_execute(query, data=None):
+        try:
+            if data:
+                cursor.execute(query, data)
+            else:
+                cursor.execute(query)
+            return True
+        except mysql.connector.Error as e:
+            print("Database error:", e)
+            return False
+
+    # ----------------------------------------
+    # CUSTOMER FUNCTIONS
+    # ----------------------------------------
+    def view_customers():
+        select_query = """
+        SELECT CustomerID, FirstName, LastName, Email, Phone, Street, City, State, ZipCode, DateCreated
+        FROM Customer
+        """
+        cursor.execute(select_query)
+        customers = cursor.fetchall()
+
+        print("\nCustomer Data:")
+        for customer in customers:
+            print(
+                f"ID: {customer[0]}, "
+                f"Name: {customer[1]} {customer[2]}, "
+                f"Email: {customer[3]}, "
+                f"Phone: {customer[4]}, "
+                f"Street: {customer[5]}, "
+                f"City: {customer[6]}, "
+                f"State: {customer[7]}, "
+                f"Zip: {customer[8]}, "
+                f"DateCreated: {customer[9]}"
+            )
+
+    def add_customer():
+        print("\nAdd Customer")
+
+        first_name = input("Enter First Name: ")
+        last_name = input("Enter Last Name: ")
+        email = input("Enter Email: ")
+        phone = input("Enter Phone: ")
+
+        insert_query = """
+        INSERT INTO Customer (FirstName, LastName, Email, Phone)
+        VALUES (%s, %s, %s, %s)
+        """
+
+        customer_data = (first_name, last_name, email, phone)
+
+        cursor.execute(insert_query, customer_data)
+        connection.commit()
+
+        print("Customer inserted successfully.")
+
+    def update_customer():
+        print("\nUpdate Customer")
+
+        customer_id = input("Enter CustomerID to update: ")
+        street = input("Enter Street: ")
+        city = input("Enter City: ")
+        state = input("Enter State: ")
+        zipcode = input("Enter ZipCode: ")
+        date_created = input("Enter DateCreated (YYYY-MM-DD): ")
+
+        update_query = """
+        UPDATE Customer
+        SET Street = %s,
+            City = %s,
+            State = %s,
+            ZipCode = %s,
+            DateCreated = %s
+        WHERE CustomerID = %s
+        """
+
+        data = (street, city, state, zipcode, date_created, customer_id)
+
+        cursor.execute(update_query, data)
+        connection.commit()
+
+        print("Customer updated successfully.")
+
+    def delete_customer():
+        print("\nDelete Customer")
+
+        customer_id = input("Enter CustomerID to delete: ")
+
+        delete_query = "DELETE FROM Customer WHERE CustomerID = %s"
+
+        try:
+            cursor.execute(delete_query, (customer_id,))
+            connection.commit()
+
+            if cursor.rowcount > 0:
+                print("Customer deleted successfully.")
+            else:
+                print("No customer found with that ID.")
+
+        except mysql.connector.Error as e:
+            print("Database error:", e)
+
+    # ----------------------------------------
+    # BOOK FUNCTIONS
+    # ----------------------------------------
+    def view_books():
+        select_query = """
+        SELECT BookID, Title, ISBN, AuthorID, CategoryID, PublicationYear, Price, StockQuantity, Format
+        FROM Book
+        """
+        cursor.execute(select_query)
+        books = cursor.fetchall()
+
+        print("\nBook Data:")
+        for book in books:
+            print(
+                f"BookID: {book[0]}, Title: {book[1]}, ISBN: {book[2]}, "
+                f"AuthorID: {book[3]}, CategoryID: {book[4]}, Year: {book[5]}, "
+                f"Price: {book[6]}, Stock: {book[7]}, Format: {book[8]}"
+            )
+
+    def add_book():
+        print("\nAdd Book")
+
+        title = input("Enter Title: ")
+        isbn = input("Enter ISBN: ")
+        author_id = input("Enter AuthorID: ")
+        category_id = input("Enter CategoryID: ")
+        publication_year = input("Enter Publication Year: ")
+        price = input("Enter Price: ")
+        condition = input("Enter Condition: ")
+        stock_quantity = input("Enter Stock Quantity: ")
+        book_format = input("Enter Format: ")
+
+        insert_query = """
+        INSERT INTO Book (Title, ISBN, AuthorID, CategoryID, PublicationYear, Price, `Condition`, StockQuantity, Format)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+
+        book_data = (
+            title, isbn, author_id, category_id, publication_year,
+            price, condition, stock_quantity, book_format
+        )
+
+        cursor.execute(insert_query, book_data)
+        connection.commit()
+
+        print("Book inserted successfully.")
+
+    def update_book():
+        print("\nUpdate Book")
+
+        book_id = input("Enter BookID to update: ")
+        price = input("Enter new Price: ")
+        stock_quantity = input("Enter new Stock Quantity: ")
+
+        update_query = """
+        UPDATE Book
+        SET Price = %s,
+            StockQuantity = %s
+        WHERE BookID = %s
+        """
+
+        cursor.execute(update_query, (price, stock_quantity, book_id))
+        connection.commit()
+
+        print("Book updated successfully.")
+
+    def delete_book():
+        print("\nDelete Book")
+
+        book_id = input("Enter BookID to delete: ")
+        delete_query = "DELETE FROM Book WHERE BookID = %s"
+
+        cursor.execute(delete_query, (book_id,))
+        connection.commit()
+
+        print("Book deleted successfully.")
+
+    # ----------------------------------------
+    # ORDER / ORDER ITEM FUNCTIONS
+    # ----------------------------------------
+    def view_orders():
+        query = """
+        SELECT CustomerOrderID, CustomerID, OrderDate, TotalAmount, OrderStatus, ShippingMethod
+        FROM CustomerOrder
+        """
+        cursor.execute(query)
+        orders = cursor.fetchall()
+
+        print("\nOrder Data:")
+        for order in orders:
+            print(
+                f"OrderID: {order[0]}, CustomerID: {order[1]}, Date: {order[2]}, "
+                f"Total: {order[3]}, Status: {order[4]}, Shipping: {order[5]}"
+            )
+
+    def view_order_items():
+        query = """
+        SELECT OrderItemID, CustomerOrderID, BookID, Quantity, UnitPrice
+        FROM OrderItem
+        """
+        cursor.execute(query)
+        items = cursor.fetchall()
+
+        print("\nOrder Item Data:")
+        for item in items:
+            print(
+                f"OrderItemID: {item[0]}, OrderID: {item[1]}, BookID: {item[2]}, "
+                f"Quantity: {item[3]}, UnitPrice: {item[4]}"
+            )
+
+    def add_order_item():
+        print("\nAdd Order Item")
+
+        customer_order_id = input("Enter CustomerOrderID: ")
+        book_id = input("Enter BookID: ")
+        quantity = input("Enter Quantity: ")
+        unit_price = input("Enter UnitPrice: ")
+
+        query = """
+        INSERT INTO OrderItem (CustomerOrderID, BookID, Quantity, UnitPrice)
+        VALUES (%s, %s, %s, %s)
+        """
+
+        cursor.execute(query, (customer_order_id, book_id, quantity, unit_price))
+        connection.commit()
+
+        print("Order item inserted successfully.")
+
+    def update_order_item():
+        print("\nUpdate Order Item")
+
+        order_item_id = input("Enter OrderItemID to update: ")
+        quantity = input("Enter new Quantity: ")
+        unit_price = input("Enter new UnitPrice: ")
+
+        query = """
+        UPDATE OrderItem
+        SET Quantity = %s,
+            UnitPrice = %s
+        WHERE OrderItemID = %s
+        """
+
+        cursor.execute(query, (quantity, unit_price, order_item_id))
+        connection.commit()
+
+        print("Order item updated successfully.")
+
+    def delete_order_item():
+        print("\nDelete Order Item")
+
+        order_item_id = input("Enter OrderItemID to delete: ")
+        query = "DELETE FROM OrderItem WHERE OrderItemID = %s"
+
+        cursor.execute(query, (order_item_id,))
+        connection.commit()
+
+        print("Order item deleted successfully.")
+
+    # ----------------------------------------
+    # CALLABLE STATEMENT
+    # ----------------------------------------
+    def call_stored_procedure():
+        print("\nGet Order Total")
+
+        order_id = input("Enter OrderID: ")
+
+        try:
+            cursor.callproc("calculate_order_total", [order_id])
+
+            for result in cursor.stored_results():
+                rows = result.fetchall()
+                if rows:
+                    for row in rows:
+                        print(row[0])
+                else:
+                    print("No data found for that OrderID.")
+
+        except mysql.connector.Error as e:
+            print("Error executing stored procedure:", e)
+
+    # ----------------------------------------
+    # REPORT FUNCTIONS 
+    # ----------------------------------------
+
+    def reports_menu():
+        while True:
+            print("\nReports Menu:")
+            print("1. Top Selling Books")
+            print("2. Customers With No Orders")
+            print("3. Books Never Ordered")
+            print("4. Customer Spending Summary")
+            print("5. Sales by Category (ROLLUP)")
+            print("6. Customers Above Average Spending")
+            print("7. Average Book Price by Category")
+            print("8. Customers Who Have Placed Orders")
+            print("9. Books That Have Been Ordered")
+            print("10. Monthly Sales Summary")
+            print("11. Sales by Shipping Method and Status (ROLLUP)")
+            print("12. Books Priced Above Category Average")
+            print("13. Back to Main Menu")
+
+            choice = input("Enter your choice: ")
+
+            if choice == '1':
+                top_selling_books()
+            elif choice == '2':
+                customers_with_no_orders()
+            elif choice == '3':
+                books_never_ordered()
+            elif choice == '4':
+                customer_spending_summary()
+            elif choice == '5':
+                sales_by_category_rollup()
+            elif choice == '6':
+                customers_above_average_spending()
+            elif choice == '7':
+                average_book_price_by_category()
+            elif choice == '8':
+                customers_who_have_orders()
+            elif choice == '9':
+                books_that_have_been_ordered()
+            elif choice == '10':
+                monthly_sales_summary()
+            elif choice == '11':
+                sales_by_shipping_and_status_rollup()
+            elif choice == '12':
+                books_priced_above_category_average()
+            elif choice == '13':
+                break
+            else:
+                print("Invalid choice. Please select a valid option.")
+
+# Report 1 - Top Selling Books 
+    def top_selling_books():
+        print("\nTop 5 Selling Books:\n")
+
+        query = """
+        SELECT 
+            b.Title,
+            SUM(oi.Quantity) AS TotalSold,
+            SUM(oi.Quantity * oi.UnitPrice) AS TotalRevenue
+        FROM OrderItem oi
+        JOIN Book b ON oi.BookID = b.BookID
+        GROUP BY b.BookID, b.Title
+        ORDER BY TotalSold DESC
+        LIMIT 5;
+        """
+
+        cursor.execute(query)
+        results = cursor.fetchall()
+
+        for row in results:
+            print(f"Title: {row[0]}, Sold: {row[1]}, Revenue: ${row[2]}")
+
+# Report 2 - Customers With No Orders
+    def customers_with_no_orders():
+        print("\nCustomers With No Orders:\n")
+
+        query = """
+        SELECT c.CustomerID, c.FirstName, c.LastName, c.Email
+        FROM Customer c
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM CustomerOrder co
+            WHERE co.CustomerID = c.CustomerID
+        );
+        """
+
+        try:
+            cursor.execute(query)
+            results = cursor.fetchall()
+
+            if results:
+                for row in results:
+                 print(f"ID: {row[0]}, Name: {row[1]} {row[2]}, Email: {row[3]}")
+            else:
+                print("All customers have orders.")
+
+        except mysql.connector.Error as e:
+            print("Error running Customers With No Orders report:", e)
+
+# Report 3 - Books Never Ordered
+    def books_never_ordered():
+        print("\nBooks Never Ordered:\n")
+
+        query = """
+        SELECT b.BookID, b.Title, b.ISBN
+        FROM Book b
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM OrderItem oi
+            WHERE oi.BookID = b.BookID
+        );
+        """
+
+        try:
+            cursor.execute(query)
+            results = cursor.fetchall()
+
+            if results:
+                for row in results:
+                    print(f"BookID: {row[0]}, Title: {row[1]}, ISBN: {row[2]}")
+            else:
+                print("All books have been ordered at least once.")
+
+        except mysql.connector.Error as e:
+            print("Error running Books Never Ordered report:", e)
+
+# Report 4 - Customer Spending Summary
+    def customer_spending_summary():
+        print("\nCustomer Spending Summary:\n")
+
+        query = """
+        WITH CustomerSpending AS (
+            SELECT 
+                c.CustomerID,
+                c.FirstName,
+                c.LastName,
+                COUNT(co.CustomerOrderID) AS OrderCount,
+                COALESCE(SUM(co.TotalAmount), 0) AS TotalSpent
+            FROM Customer c
+            LEFT JOIN CustomerOrder co
+                ON c.CustomerID = co.CustomerID
+            GROUP BY c.CustomerID, c.FirstName, c.LastName
+        )
+        SELECT CustomerID, FirstName, LastName, OrderCount, TotalSpent
+        FROM CustomerSpending
+        ORDER BY TotalSpent DESC, CustomerID;
+        """
+
+        try:
+            cursor.execute(query)
+            results = cursor.fetchall()
+
+            if results:
+                for row in results:
+                    print(
+                        f"CustomerID: {row[0]}, "
+                        f"Name: {row[1]} {row[2]}, "
+                        f"Orders: {row[3]}, "
+                        f"Total Spent: ${row[4]:.2f}"
+                    )
+            else:
+                print("No customer spending data found.")
+
+        except mysql.connector.Error as e:
+            print("Error running Customer Spending Summary report:", e)
+# Report 5 - Sales by Category (ROLLUP)
+    def sales_by_category_rollup():
+        print("\nSales by Category (ROLLUP):\n")
+
+        query = """
+        SELECT 
+            c.CategoryName,
+            SUM(oi.Quantity * oi.UnitPrice) AS TotalSales
+        FROM OrderItem oi
+        JOIN Book b ON oi.BookID = b.BookID
+        JOIN Category c ON b.CategoryID = c.CategoryID
+        GROUP BY c.CategoryName WITH ROLLUP;
+        """
+
+        try:
+            cursor.execute(query)
+            results = cursor.fetchall()
+
+            if results:
+                for row in results:
+                    category = row[0] if row[0] is not None else "TOTAL"
+                    total = row[1] if row[1] is not None else 0
+                    print(f"Category: {category}, Sales: ${total:.2f}")
+            else:
+                print("No sales data found.")
+
+        except mysql.connector.Error as e:
+            print("Error running Sales by Category report:", e)
+
+# Report 6 - Customers With Above Average Spending
+    def customers_above_average_spending():
+        print("\nCustomers Above Average Spending:\n")
+
+        query = """
+        WITH CustomerTotals AS (
+            SELECT 
+                c.CustomerID,
+                c.FirstName,
+                c.LastName,
+                COALESCE(SUM(co.TotalAmount), 0) AS TotalSpent
+            FROM Customer c
+            LEFT JOIN CustomerOrder co
+                ON c.CustomerID = co.CustomerID
+            GROUP BY c.CustomerID, c.FirstName, c.LastName
+        )
+        SELECT *
+        FROM CustomerTotals
+        WHERE TotalSpent > (
+            SELECT AVG(TotalSpent) FROM CustomerTotals
+        )
+        ORDER BY TotalSpent DESC;
+        """
+
+        try:
+            cursor.execute(query)
+            results = cursor.fetchall()
+
+            if results:
+                for row in results:
+                    print(
+                        f"CustomerID: {row[0]}, "
+                        f"Name: {row[1]} {row[2]}, "
+                        f"Total Spent: ${row[3]:.2f}"
+                    )
+            else:
+                print("No customers above average spending.")
+
+        except mysql.connector.Error as e:
+            print("Error running Customers Above Average Spending report:", e)
+# Report 7 - Average Book Price by Category
+    def average_book_price_by_category():
+        print("\nAverage Book Price by Category:\n")
+
+        query = """
+        SELECT 
+            c.CategoryName,
+            AVG(b.Price) AS AveragePrice
+        FROM Book b
+        JOIN Category c ON b.CategoryID = c.CategoryID
+        GROUP BY c.CategoryName
+        ORDER BY AveragePrice DESC;
+        """
+
+        cursor.execute(query)
+        results = cursor.fetchall()
+
+        for row in results:
+            print(f"Category: {row[0]}, Average Price: ${row[1]:.2f}")
+
+# Report 8 - Customers Who Have Placed Orders            
+    def customers_who_have_orders():
+        print("\nCustomers Who Have Placed Orders:\n")
+
+        query = """
+        SELECT c.CustomerID, c.FirstName, c.LastName, c.Email
+        FROM Customer c
+        WHERE EXISTS (
+            SELECT 1
+            FROM CustomerOrder co
+            WHERE co.CustomerID = c.CustomerID
+        );
+        """
+
+        cursor.execute(query)
+        results = cursor.fetchall()
+
+        for row in results:
+            print(f"ID: {row[0]}, Name: {row[1]} {row[2]}, Email: {row[3]}")
+
+# Report 9
+    def books_that_have_been_ordered():
+        print("\nBooks That Have Been Ordered:\n")
+
+        query = """
+        SELECT b.BookID, b.Title, b.ISBN
+        FROM Book b
+        WHERE EXISTS (
+            SELECT 1
+            FROM OrderItem oi
+            WHERE oi.BookID = b.BookID
+        );
+        """
+
+        cursor.execute(query)
+        results = cursor.fetchall()
+
+        for row in results:
+            print(f"BookID: {row[0]}, Title: {row[1]}, ISBN: {row[2]}")
+
+# Report 10 - Monthly Sales Summary
+    def monthly_sales_summary():
+        print("\nMonthly Sales Summary:\n")
+
+        query = """
+        WITH MonthlySales AS (
+            SELECT 
+                MONTH(OrderDate) AS SalesMonth,
+                SUM(TotalAmount) AS MonthlyTotal
+            FROM CustomerOrder
+            GROUP BY MONTH(OrderDate)
+        )
+        SELECT SalesMonth, MonthlyTotal
+        FROM MonthlySales
+        ORDER BY SalesMonth;
+        """
+
+        cursor.execute(query)
+        results = cursor.fetchall()
+
+        for row in results:
+            print(f"Month: {row[0]}, Total Sales: ${row[1]:.2f}")
+            
+# Report 11 - Sales by Shipping Method and Status (ROLLUP)     
+    def sales_by_shipping_and_status_rollup():
+        print("\nSales by Shipping Method and Status (ROLLUP):\n")
+
+        query = """
+        SELECT 
+            ShippingMethod,
+            OrderStatus,
+            SUM(TotalAmount) AS TotalSales
+        FROM CustomerOrder
+        GROUP BY ShippingMethod, OrderStatus WITH ROLLUP;
+        """
+
+        cursor.execute(query)
+        results = cursor.fetchall()
+
+        for row in results:
+            shipping = row[0] if row[0] is not None else "TOTAL"
+            status = row[1] if row[1] is not None else "ALL STATUSES"
+            total = row[2] if row[2] is not None else 0
+
+            print(f"Shipping Method: {shipping}, Status: {status}, Total Sales: ${total:.2f}")      
+
+# Report 12 - Books Priced Above Category Average
+    def books_priced_above_category_average():
+        print("\nBooks Priced Above Category Average:\n")
+
+        query = """
+        SELECT 
+            b.Title,
+            b.Price,
+            c.CategoryName
+        FROM Book b
+        JOIN Category c ON b.CategoryID = c.CategoryID
+        WHERE b.Price > (
+            SELECT AVG(b2.Price)
+            FROM Book b2
+            WHERE b2.CategoryID = b.CategoryID
+        )
+        ORDER BY c.CategoryName, b.Price DESC;
+        """
+
+        cursor.execute(query)
+        results = cursor.fetchall()
+
+        for row in results:
+            print(f"Title: {row[0]}, Price: ${row[1]:.2f}, Category: {row[2]}")
+
+    # ----------------------------------------
+    # SUBMENUS
+    # ----------------------------------------
+    def manage_customers():
+        while True:
+            print("\nManage Customers:")
+            print("1. View Customers")
+            print("2. Add Customer")
+            print("3. Update Customer")
+            print("4. Delete Customer")
+            print("5. Back to Main Menu")
+
+            choice = input("Enter your choice: ")
+
+            if choice == '1':
+                view_customers()
+            elif choice == '2':
+                add_customer()
+            elif choice == '3':
+                update_customer()
+            elif choice == '4':
+                delete_customer()
+            elif choice == '5':
+                break
+            else:
+                print("Invalid choice. Please select a valid option.")
+
+    def manage_books():
+        while True:
+            print("\nManage Books:")
+            print("1. View Books")
+            print("2. Add Book")
+            print("3. Update Book")
+            print("4. Delete Book")
+            print("5. Back to Main Menu")
+
+            choice = input("Enter your choice: ")
+
+            if choice == '1':
+                view_books()
+            elif choice == '2':
+                add_book()
+            elif choice == '3':
+                update_book()
+            elif choice == '4':
+                delete_book()
+            elif choice == '5':
+                break
+            else:
+                print("Invalid choice. Please select a valid option.")
+
+    def manage_orders_and_order_items():
+        while True:
+            print("\nManage Orders and Order Items:")
+            print("1. View Orders")
+            print("2. View Order Items")
+            print("3. Add Order Item")
+            print("4. Update Order Item")
+            print("5. Delete Order Item")
+            print("6. Get Order Total")
+            print("7. Back to Main Menu")
+
+            choice = input("Enter your choice: ")
+
+            if choice == '1':
+                view_orders()
+            elif choice == '2':
+                view_order_items()
+            elif choice == '3':
+                add_order_item()
+            elif choice == '4':
+                update_order_item()
+            elif choice == '5':
+                delete_order_item()
+            elif choice == '6':
+                call_stored_procedure()
+            elif choice == '7':
+                break
+            else:
+                print("Invalid choice. Please select a valid option.")
+
+    # ----------------------------------------
+    # MAIN MENU
+    # ----------------------------------------
+    def main():
+        while True:
+            print("\nMain Menu:")
+            print("1. Manage Customers")
+            print("2. Manage Books")
+            print("3. Manage Orders and Order Items")
+            print("4. Reports")
+            print("5. Exit")
+
+            choice = input("Enter your choice: ")
+
+            if choice == '1':
+                manage_customers()
+            elif choice == '2':
+                manage_books()
+            elif choice == '3':
+                manage_orders_and_order_items()
+            elif choice == '4':
+                reports_menu()
+            elif choice == '5':
+                print("Exiting program.")
+                break
+            else:
+                print("Invalid choice. Please select a valid option.")
+
+    if __name__ == "__main__":
+        main()
+
+except mysql.connector.Error as e:
+    print("Error:", e)
+
+finally:
+    if cursor is not None:
+        cursor.close()
+    if connection is not None and connection.is_connected():
+        connection.close()
+        print("Connection to MySQL database closed")
