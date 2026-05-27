@@ -59,3 +59,12 @@ The application demonstrates:
 - ORDER BY
 - LIMIT
 - EXISTS /
+
+## Error Handling and Robustness
+- The application includes
+- Validation for invalid menu selections
+- Input validation for numeric IDs
+- Graceful handling of SQL execution errors
+- Row existence checks before confirming updates/deletes
+- Safe database connection closing
+- Prepared statements to reduce SQL injection risk
